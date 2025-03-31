@@ -1,7 +1,7 @@
 pyOpenSSL
 paramiko
-httpx  # Keeping httpx, which will manage its dependencies properly
-transformers  # Keeping transformers without explicit tokenizers dependency
+httpx
+transformers
 numpy
 pandas
 requests
@@ -9,9 +9,9 @@ flask
 fastapi
 uvicorn
 scipy
-torch==2.2.1+cu121  # Ensure correct PyTorch version
-torchvision==0.17.1+cu121
-torchaudio==2.2.1+cu121
+torch
+torchvision
+torchaudio
 opencv-python-headless
 pillow
 matplotlib
@@ -20,7 +20,7 @@ scikit-learn
 tqdm
 beautifulsoup4
 lxml
-tensorflow[and-cuda]  # Ensures GPU compatibility
+tensorflow
 keras
 pydantic
 pytest
@@ -30,4 +30,3 @@ psycopg2-binary
 aiohttp
 redis
 celery
-gunicorn
