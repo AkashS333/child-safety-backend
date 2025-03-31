@@ -9,9 +9,9 @@ flask
 fastapi
 uvicorn
 scipy
-torch
-torchvision
-torchaudio
+torch==2.2.1+cu121  # Ensure correct PyTorch version
+torchvision==0.17.1+cu121
+torchaudio==2.2.1+cu121
 opencv-python-headless
 pillow
 matplotlib
@@ -20,7 +20,7 @@ scikit-learn
 tqdm
 beautifulsoup4
 lxml
-tensorflow
+tensorflow[and-cuda]  # Ensures GPU compatibility
 keras
 pydantic
 pytest
