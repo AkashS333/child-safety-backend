@@ -1,7 +1,8 @@
-from fastapi import FastAPI, BackgroundTasks
+from flask import Flask, jsonify, request
 import os
 import cv2
 import time
+import threading
 import torch
 import numpy as np
 import pandas as pd
@@ -10,8 +11,8 @@ from PIL import ImageGrab, Image
 from transformers import pipeline, CLIPProcessor, CLIPModel
 from twilio.rest import Client
 
-# Initialize FastAPI
-app = FastAPI(title="AI Child Safety System")
+# Initialize Flask App
+app = Flask(__name__)
 
 # Twilio setup
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
@@ -36,8 +37,7 @@ BAD_CONTENT_LOG = "alert_log.xlsx"
 GOOD_CONTENT_LOG = "good_content.xlsx"
 
 # Global control variable
-running = True
-
+running = False
 
 # Function to capture screen
 def capture_screen():
@@ -45,7 +45,6 @@ def capture_screen():
     filename = "screenshot.png"
     screenshot.save(filename)
     return filename
-
 
 # Function to slice image
 def slice_image(image_path, grid_size=(3, 3)):
@@ -63,7 +62,6 @@ def slice_image(image_path, grid_size=(3, 3)):
     
     return slices
 
-
 # Detect harmful content
 def detect_harmful_content(image_path):
     try:
@@ -80,7 +78,6 @@ def detect_harmful_content(image_path):
         return best_label, False
     except Exception as e:
         return "Error", False
-
 
 # Detect age from webcam
 def predict_age_from_webcam():
@@ -102,7 +99,6 @@ def predict_age_from_webcam():
     except Exception:
         return "Unknown"
 
-
 # Send alert via Twilio
 def send_alert(message):
     try:
@@ -114,7 +110,6 @@ def send_alert(message):
     except Exception as e:
         print(f"[ERROR] Failed to send alert: {e}")
 
-
 # Log bad content
 def log_bad_content(age, content, image_path):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -122,15 +117,13 @@ def log_bad_content(age, content, image_path):
     log_entry.to_excel(BAD_CONTENT_LOG, index=False, mode='a', header=False)
     send_alert(f"🚨 Alert! Harmful content detected: {content}")
 
-
 # Log good content
 def log_good_content(age, content):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     log_entry = pd.DataFrame([{"Age": age, "Content": content, "Timestamp": now}])
     log_entry.to_excel(GOOD_CONTENT_LOG, index=False, mode='a', header=False)
 
-
-# Continuous monitoring
+# Continuous monitoring (Runs in a separate thread)
 def monitor():
     global running
     while running:
@@ -146,36 +139,34 @@ def monitor():
 
         time.sleep(10)
 
-
 # API Endpoints
-@app.get("/")
+@app.route("/", methods=["GET"])
 def home():
-    return {"message": "AI Child Safety System Running!"}
+    return jsonify({"message": "AI Child Safety System Running!"})
 
-
-@app.post("/start")
-def start_monitoring(background_tasks: BackgroundTasks):
+@app.route("/start", methods=["POST"])
+def start_monitoring():
     global running
     if running:
-        return {"message": "Monitoring already running!"}
+        return jsonify({"message": "Monitoring already running!"})
+    
     running = True
-    background_tasks.add_task(monitor)
-    return {"message": "Started monitoring!"}
+    thread = threading.Thread(target=monitor)
+    thread.start()
+    
+    return jsonify({"message": "Started monitoring!"})
 
-
-@app.post("/stop")
+@app.route("/stop", methods=["POST"])
 def stop_monitoring():
     global running
     running = False
-    return {"message": "Monitoring stopped!"}
+    return jsonify({"message": "Monitoring stopped!"})
 
-
-@app.get("/status")
+@app.route("/status", methods=["GET"])
 def get_status():
-    return {"monitoring": running}
+    return jsonify({"monitoring": running})
 
-
-# Run FastAPI with Uvicorn
+# Run Flask App
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port, debug=True)
